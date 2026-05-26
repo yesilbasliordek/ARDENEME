@@ -1,5 +1,5 @@
 /**
- * Temiz Deniz AR — app.js (Tam Güncel Sürüm)
+ * Hayal Kütüphanesi — app.js (Tam Güncel Sürüm)
  */
 
 const PAGES = {
@@ -17,7 +17,7 @@ let arStarted = false;
 let isMuted = false;
 let modelsVisible = true;
 
-// PINCH TO ZOOM TABAN ÖLÇEKLERİ (HTML Değerleriyle eşitleme düzeltildi)
+// PINCH TO ZOOM TABAN ÖLÇEKLERİ
 const baseScales = { 'target-0': 4, 'target-1': 4, 'target-2': 0.045, 'target-3': 4 };
 let scaleModifiers = { 'target-0': 1, 'target-1': 1, 'target-2': 1, 'target-3': 1 };
 let startDistance = 0;
@@ -97,6 +97,41 @@ function startMindAR() {
   }
 }
 
+// GÜNCELLEME: BALONCUKLARIN KART MERKEZİNDEN KUSURSUZCA ETRAFA SAÇILMASINI SAĞLAYAN MOTOR
+function triggerBubbleBurst(e) {
+  const card = e.currentTarget;
+  const rect = card.getBoundingClientRect();
+  
+  // Baloncukların kartın tam göbeğinden dairesel yayılması kilitlendi
+  const x = rect.left + rect.width / 2;
+  const y = rect.top + rect.height / 2;
+  
+  for (let i = 0; i < 25; i++) {
+    const b = document.createElement('div');
+    b.className = 'burst-bubble';
+    
+    const angle = Math.random() * Math.PI * 2;
+    const distance = 40 + Math.random() * 120; 
+    
+    const tx = Math.cos(angle) * distance + 'px';
+    const ty = Math.sin(angle) * distance + 'px';
+    const scale = 0.5 + Math.random() * 1.3;
+    const size = 10 + Math.random() * 16 + 'px';
+    
+    b.style.width = size;
+    b.style.height = size;
+    b.style.left = x + 'px';
+    b.style.top = y + 'px';
+    
+    b.style.setProperty('--tx', tx);
+    b.style.setProperty('--ty', ty);
+    b.style.setProperty('--scale', scale);
+    
+    document.body.appendChild(b);
+    setTimeout(() => b.remove(), 700);
+  }
+}
+
 // UI VE HAREKET OLAYLARI
 document.addEventListener('DOMContentLoaded', () => {
   const temizDenizCard = document.getElementById('temizDenizCard');
@@ -107,14 +142,26 @@ document.addEventListener('DOMContentLoaded', () => {
   const toggleModelBtn = document.getElementById('toggleModelBtn');
   const toggleAudioBtn = document.getElementById('toggleAudioBtn');
 
-  // 1. Kütüphaneden Kitaba Giriş
+  // KESİN DÜZELTME: Giriş sayfasındaki kitap kapaklarına fare geldiğinde (hover) tetiklenir
+  bookCards.forEach(card => {
+    card.addEventListener('mouseenter', (e) => {
+      triggerBubbleBurst(e);
+    });
+  });
+
+  // 1. Kütüphaneden Kitaba Giriş (Tıklama efekti)
   if (temizDenizCard) {
-    temizDenizCard.addEventListener('click', () => {
+    temizDenizCard.addEventListener('click', (e) => {
+      triggerBubbleBurst(e);
+      
       const titleEl = temizDenizCard.querySelector('.book-title');
       if (titleEl) titleEl.textContent = "Açılıyor...";
       temizDenizCard.style.opacity = "0.7";
       temizDenizCard.style.pointerEvents = "none";
-      startMindAR();
+      
+      setTimeout(() => {
+        startMindAR();
+      }, 650);
     });
   }
 
@@ -153,7 +200,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentAudio.muted = isMuted;
       }
       toggleAudioBtn.querySelector('.icon').textContent = isMuted ? '🔇' : '🔊';
-      toggleAudioBtn.querySelector('.text').textContent = isMuted ? 'Aç' : 'Kıs';
+      toggleAudioBtn.querySelector('.text').textContent = isMuted ? 'Ses' : 'Kıs';
     });
   }
 
@@ -195,7 +242,7 @@ document.addEventListener('DOMContentLoaded', () => {
     startDistance = 0;
   });
 
-  // 6. KESİN ÇIKIŞ FONKSİYONU
+  // 6. KESİN ÇIKIŞ FONKSİYONU (Kamera Ekranı Orijinal Bırakıldı)
   if (finishBtn) {
     finishBtn.addEventListener('click', (e) => {
       e.preventDefault();
@@ -223,15 +270,23 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-// YENİ: EKRAN DÖNÜŞÜ VE BOYUTLANDIRMA DÜZELTMELERİ (En alta eklendi)
-window.addEventListener("resize", () => {
+// RESİZE MOTORU
+function forceFixARResize() {
   const scene = document.getElementById('arScene');
-  if (scene) scene.resize();
-});
+  if (scene) {
+    scene.resize();
+    const cameraEl = document.querySelector('a-camera');
+    if (cameraEl && cameraEl.components.camera) {
+      const threeCamera = cameraEl.components.camera.camera;
+      if (threeCamera) {
+        threeCamera.aspect = window.innerWidth / window.innerHeight;
+        threeCamera.updateProjectionMatrix();
+      }
+    }
+  }
+}
 
+window.addEventListener("resize", forceFixARResize);
 window.addEventListener("orientationchange", () => {
-  setTimeout(() => {
-    const scene = document.getElementById('arScene');
-    if (scene) scene.resize();
-  }, 300);
+  setTimeout(forceFixARResize, 350); 
 });
