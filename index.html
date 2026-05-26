@@ -269,17 +269,17 @@
 
   <a-scene
     id="arScene"
-    mindar-image="imageTargetSrc: ./targets/targets.mind?v=8; autoStart: false; uiLoading: yes; uiScanning: yes; filterMinCF: 0.0001; filterBeta: 0.005; missTolerance: 8;"
+    mindar-image="imageTargetSrc: ./targets/targets.mind?v=8; autoStart: false; uiLoading: yes; uiScanning: yes; filterMinCF: 0.001; filterBeta: 0.5; missTolerance: 4;"
     color-space="sRGB"
     renderer="colorManagement: true, physicallyCorrectLights: true"
     vr-mode-ui="enabled: false"
     device-orientation-permission-ui="enabled: false">
 
     <a-assets timeout="7000">
-      <a-asset-item id="model-0" src="./models/sayfa0.glb?v=9"></a-asset-item>
-      <a-asset-item id="model-5" src="./models/sayfa5.glb?v=9"></a-asset-item>
-      <a-asset-item id="model-14" src="./models/sayfa14.glb?v=9"></a-asset-item>
-      <a-asset-item id="model-15" src="./models/sayfa15.glb?v=9"></a-asset-item>
+      <a-asset-item id="model-0" src="./models/sayfa0.glb?v=9"></a-assets-item>
+      <a-asset-item id="model-5" src="./models/sayfa5.glb?v=9"></a-assets-item>
+      <a-asset-item id="model-14" src="./models/sayfa14.glb?v=9"></a-assets-item>
+      <a-asset-item id="model-15" src="./models/sayfa15.glb?v=9"></a-assets-item>
     </a-assets>
 
     <a-entity light="type: ambient; color: #BBB; intensity: 1.5"></a-entity>
@@ -296,7 +296,7 @@
     </a-entity>
 
     <a-entity mindar-image-target="targetIndex: 2" id="target-2">
-      <a-gltf-model src="#model-14" position="0 0 0.05" scale="0.045 0.045 0.045" rotation="0 0 0" animation-mixer></a-gltf-model>
+      <a-gltf-model src="#model-14" position="0 0 0.05" scale="0.04 0.04 0.04" rotation="0 0 0" animation-mixer></a-gltf-model>
     </a-entity>
 
     <a-entity mindar-image-target="targetIndex: 3" id="target-3">
