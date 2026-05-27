@@ -2,6 +2,35 @@
  * Hayal Kütüphanesi — app.js (Tam Güncel Sürüm)
  */
 
+// GÜNCELLEME: Tıklamaların 3D uzayda kusursuz yakalanması için A-Frame mimarisine doğrudan kilitlenen özel tıklama-dönme bileşeni
+if (typeof AFRAME !== 'undefined') {
+  AFRAME.registerComponent('click-rotate', {
+    init: function () {
+      this.el.addEventListener('click', () => {
+        let currentRot = this.el.getAttribute('rotation') || {x: 0, y: 0, z: 0};
+        
+        // Önceki animasyon çakışmalarını sıfırla
+        this.el.removeAttribute('animation');
+        
+        // Kendi ekseninde takla atma animasyonu başlat
+        this.el.setAttribute('animation', {
+          property: 'rotation',
+          to: `${currentRot.x} ${currentRot.y} ${currentRot.z + 360}`,
+          dur: 1200,
+          easing: 'easeOutBack'
+        });
+      });
+    }
+  });
+}
+
+// PWA Mobil Kurulum Servis Kaydı
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js')
+    .then(() => console.log('PWA Servisi Aktif.'))
+    .catch(err => console.warn('PWA Kayıt Hatası:', err));
+}
+
 const PAGES = {
   0: { label: 'Sayfa 0', audio: './audio/sayfa0.mp3' },
   1: { label: 'Sayfa 5', audio: './audio/sayfa5.mp3' },
@@ -17,8 +46,13 @@ let arStarted = false;
 let isMuted = false;
 let modelsVisible = true;
 
-// PINCH TO ZOOM TABAN ÖLÇEKLERİ
-const baseScales = { 'target-0': 4, 'target-1': 4, 'target-2': 0.045, 'target-3': 4 };
+// Suno AI'dan aldığın su altı fon müziği ve azaltılmış %15 ses seviyesi
+let ambientAudio = new Audio('./audio/ambiyans.mp3');
+ambientAudio.loop = true; 
+ambientAudio.volume = 0.2; 
+
+// PINCH TO ZOOM TABAN ÖLÇEKLERİ (Orijinal target-2 ölçeğiniz 0.04 olarak senkronize bırakıldı)
+const baseScales = { 'target-0': 4, 'target-1': 4, 'target-2': 0.04, 'target-3': 4 };
 let scaleModifiers = { 'target-0': 1, 'target-1': 1, 'target-2': 1, 'target-3': 1 };
 let startDistance = 0;
 
@@ -84,7 +118,15 @@ function startMindAR() {
       bindTargets(scene);
       mindarSystem.start();
       document.getElementById('dashboard').style.display = 'none';
-      document.getElementById('ar-ui').classList.add('active');
+      
+      setTimeout(() => {
+        document.getElementById('ar-loader').style.display = 'none';
+        document.getElementById('ar-ui').classList.add('active');
+        if (!isMuted) {
+          ambientAudio.play().catch(err => console.log("Müzik otomatik başlatılamadı:", err));
+        }
+      }, 500);
+
     } else {
       setTimeout(tryStart, 300);
     }
@@ -97,12 +139,10 @@ function startMindAR() {
   }
 }
 
-// GÜNCELLEME: BALONCUKLARIN KART MERKEZİNDEN KUSURSUZCA ETRAFA SAÇILMASINI SAĞLAYAN MOTOR
 function triggerBubbleBurst(e) {
   const card = e.currentTarget;
   const rect = card.getBoundingClientRect();
   
-  // Baloncukların kartın tam göbeğinden dairesel yayılması kilitlendi
   const x = rect.left + rect.width / 2;
   const y = rect.top + rect.height / 2;
   
@@ -128,7 +168,7 @@ function triggerBubbleBurst(e) {
     b.style.setProperty('--scale', scale);
     
     document.body.appendChild(b);
-    setTimeout(() => b.remove(), 700);
+    setTimeout(() => b.remove(), 1500);
   }
 }
 
@@ -142,14 +182,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const toggleModelBtn = document.getElementById('toggleModelBtn');
   const toggleAudioBtn = document.getElementById('toggleAudioBtn');
 
-  // KESİN DÜZELTME: Giriş sayfasındaki kitap kapaklarına fare geldiğinde (hover) tetiklenir
   bookCards.forEach(card => {
     card.addEventListener('mouseenter', (e) => {
       triggerBubbleBurst(e);
     });
   });
 
-  // 1. Kütüphaneden Kitaba Giriş (Tıklama efekti)
+  // 1. Kütüphaneden Kitaba Giriş
   if (temizDenizCard) {
     temizDenizCard.addEventListener('click', (e) => {
       triggerBubbleBurst(e);
@@ -158,6 +197,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (titleEl) titleEl.textContent = "Açılıyor...";
       temizDenizCard.style.opacity = "0.7";
       temizDenizCard.style.pointerEvents = "none";
+      
+      document.getElementById('ar-loader').style.display = 'flex';
       
       setTimeout(() => {
         startMindAR();
@@ -199,6 +240,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (currentAudio) {
         currentAudio.muted = isMuted;
       }
+      ambientAudio.muted = isMuted;
+      
       toggleAudioBtn.querySelector('.icon').textContent = isMuted ? '🔇' : '🔊';
       toggleAudioBtn.querySelector('.text').textContent = isMuted ? 'Ses' : 'Kıs';
     });
@@ -242,13 +285,16 @@ document.addEventListener('DOMContentLoaded', () => {
     startDistance = 0;
   });
 
-  // 6. KESİN ÇIKIŞ FONKSİYONU (Kamera Ekranı Orijinal Bırakıldı)
+  // 6. KESİN ÇIKIŞ FONKSİYONU
   if (finishBtn) {
     finishBtn.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation(); 
       
       stopAudio();
+      ambientAudio.pause();
+      ambientAudio.currentTime = 0;
+
       hideIndicator();
       document.getElementById('ar-ui').classList.remove('active');
       
